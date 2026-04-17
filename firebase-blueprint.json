@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "articles": {
+      "title": "Articles",
+      "description": "Collection for blog articles/posts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" },
+        "category": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "authorUid"]
+    },
+    "slides": {
+      "title": "Sliders",
+      "description": "Hero slider items for home page",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "ctaText": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "imageUrl"]
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "accentColor": { "type": "string" },
+        "maintenanceMode": { "type": "boolean" },
+        "adminEmail": { "type": "string" },
+        "adminPassword": { "type": "string" }
+      }
+    },
+    "files": {
+      "title": "Uploaded Files",
+      "description": "Files available for public download",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "size": { "type": "string" },
+        "type": { "type": "string" },
+        "date": { "type": "string" },
+        "color": { "type": "string" },
+        "uploadedBy": { "type": "string" }
+      },
+      "required": ["name", "type"]
+    }
+  },
+  "firestore": {
+    "articles": {
+      "schema": "articles",
+      "description": "Blog posts and news content"
+    },
+    "slides": {
+      "schema": "slides",
+      "description": "Hero section slide images and text"
+    },
+    "app_settings": {
+      "schema": "settings",
+      "description": "General system configuration"
+    },
+    "public_files": {
+      "schema": "files",
+      "description": "List of files for the download manager"
+    }
+  }
+}

@@ -8,6 +8,17 @@ import Login from "./components/Login";
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { 
+  collection, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  doc, 
+  getDoc,
+  getDocsFromServer
+} from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { db, auth } from "./firebase";
 import { SLIDE_ITEMS } from "./constants";
 import { Article, SlideItem, FileItem } from "./types";
 
@@ -27,8 +38,84 @@ export default function App() {
   ]);
   const [accentColor, setAccentColor] = useState("#6366f1"); // Indigo primary
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [adminEmail, setAdminEmail] = useState("admin@athethea.com");
   const [adminPassword, setAdminPassword] = useState("admin123");
+
+  // Authentication & Initial Connection Test
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await getDocsFromServer(query(collection(db, 'articles'), orderBy('date', 'desc')));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    };
+    testConnection();
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Data Sync: Articles
+  useEffect(() => {
+    const q = query(collection(db, "articles"), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+      setArticles(docs);
+    }, (error) => {
+      console.error("Articles sync error:", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Data Sync: Slides
+  useEffect(() => {
+    const q = query(collection(db, "slides"), orderBy("order", "asc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        setSlides([]);
+      } else {
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SlideItem));
+        setSlides(docs);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Data Sync: Files
+  useEffect(() => {
+    const q = query(collection(db, "public_files"), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FileItem));
+      setUploadedFiles(docs);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Data Sync: App Settings
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "app_settings", "general"), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        if (data.accentColor) setAccentColor(data.accentColor);
+        if (data.adminEmail) setAdminEmail(data.adminEmail);
+        if (data.adminPassword) setAdminPassword(data.adminPassword);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setActiveTab("1");
+    navigate("/");
+  };
 
   // Sync state with URL path
   useEffect(() => {
@@ -75,11 +162,7 @@ export default function App() {
         activeId={activeTab} 
         onNavigate={handleNavigate} 
         isLoggedIn={isLoggedIn} 
-        onLogout={() => {
-          setIsLoggedIn(false);
-          setActiveTab("1");
-          navigate("/");
-        }} 
+        onLogout={handleLogout} 
       />
 
       {/* Main Content Area */}

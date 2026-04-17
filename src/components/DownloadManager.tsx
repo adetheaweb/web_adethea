@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Download, FileText, FileJson, Image as ImageIcon, Music, Video, Search, CheckCircle2, Loader2, Upload, X, ShieldAlert } from "lucide-react";
-
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../firebase";
 import { FileItem } from "../types";
 
 interface DownloadManagerProps {
@@ -62,32 +63,37 @@ export default function DownloadManager({
       setUploadProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(() => {
-            setIsUploading(false);
-            setIsUploadModalOpen(false);
-            
+          
+          const finalizeUpload = async () => {
             const fileExt = newFileName.split('.').pop()?.toUpperCase() || 'ZIP';
             let iconColor = "text-blue-400";
             if (fileExt === 'JSON') iconColor = "text-amber-400";
             if (fileExt === 'ZIP') iconColor = "text-purple-400";
             if (fileExt === 'PDF') iconColor = "text-rose-400";
 
-            setUploadedFiles([
-              { 
-                id: Date.now().toString(), 
-                name: newFileName.includes('.') ? newFileName : `${newFileName}.zip`, 
-                size: "2.5 MB", 
-                type: fileExt, 
-                date: "Baru saja",
-                color: iconColor
-              },
-              ...uploadedFiles
-            ]);
+            const newFile = { 
+              name: newFileName.includes('.') ? newFileName : `${newFileName}.zip`, 
+              size: "2.5 MB", 
+              type: fileExt, 
+              date: "Baru saja",
+              color: iconColor,
+              createdAt: new Date().toISOString()
+            };
 
-            setCompleted(`File "${newFileName}" Berhasil Diunggah`);
-            setNewFileName("");
-            setTimeout(() => setCompleted(null), 3000);
-          }, 500);
+            try {
+              await addDoc(collection(db, "public_files"), newFile);
+              setIsUploading(false);
+              setIsUploadModalOpen(false);
+              setCompleted(`File "${newFileName}" Berhasil Diunggah`);
+              setNewFileName("");
+              setTimeout(() => setCompleted(null), 3000);
+            } catch (error) {
+              console.error("Upload to Firestore error:", error);
+              setIsUploading(false);
+            }
+          };
+
+          finalizeUpload();
           return 100;
         }
         return prev + 10;

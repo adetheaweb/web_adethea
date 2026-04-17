@@ -1,6 +1,15 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
+  collection, 
+  addDoc, 
+  deleteDoc, 
+  doc, 
+  updateDoc, 
+  setDoc 
+} from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { 
   User, 
   Bell, 
   Lock, 
@@ -154,18 +163,27 @@ export default function SettingsManager({
     setIsSavingPass(true);
     setPassFeedback(null);
 
-    // Simulate saving
-    setTimeout(() => {
-      setIsSavingPass(false);
-      setAdminPassword(newPass);
-      setPassFeedback({ type: 'success', message: 'Password admin berhasil diperbarui!' });
-      setCurrentPass("");
-      setNewPass("");
-      setConfirmPass("");
-      
-      // Clear success message after delay
-      setTimeout(() => setPassFeedback(null), 5000);
-    }, 2000);
+    // Persist to Firestore
+    const updateCredentials = async () => {
+      try {
+        await setDoc(doc(db, "app_settings", "general"), { adminPassword: newPass }, { merge: true });
+        setIsSavingPass(false);
+        setAdminPassword(newPass);
+        setPassFeedback({ type: 'success', message: 'Password admin berhasil diperbarui!' });
+        setCurrentPass("");
+        setNewPass("");
+        setConfirmPass("");
+        
+        // Clear success message after delay
+        setTimeout(() => setPassFeedback(null), 5000);
+      } catch (error) {
+        console.error("Error saving password:", error);
+        setPassFeedback({ type: 'error', message: 'Gagal memperbarui password di database.' });
+        setIsSavingPass(false);
+      }
+    };
+
+    setTimeout(updateCredentials, 2000);
   };
 
   const settingsTabs = [
@@ -188,23 +206,45 @@ export default function SettingsManager({
     { name: "Vivid", value: "#a855f7" },
   ];
 
-  const updateSlide = (id: string, field: keyof SlideItem, value: string) => {
-    setSlides(slides.map(s => s.id === id ? { ...s, [field]: value } : s));
+  const updateSlide = async (id: string, field: keyof SlideItem, value: string) => {
+    try {
+      const slideRef = doc(db, "slides", id);
+      await updateDoc(slideRef, { [field]: value });
+    } catch (error) {
+      console.error("Error updating slide:", error);
+    }
   };
 
-  const addSlide = () => {
-    const newSlide: SlideItem = {
-      id: Date.now().toString(),
+  const addSlide = async () => {
+    const newSlide = {
       title: "Judul Slide Baru",
       subtitle: "Deskripsi singkat tentang slide ini.",
       imageUrl: "https://picsum.photos/seed/" + Date.now() + "/1200/600",
-      ctaText: "Selengkapnya"
+      ctaText: "Selengkapnya",
+      order: slides.length
     };
-    setSlides([...slides, newSlide]);
+    try {
+      await addDoc(collection(db, "slides"), newSlide);
+    } catch (error) {
+      console.error("Error adding slide:", error);
+    }
   };
 
-  const deleteSlide = (id: string) => {
-    setSlides(slides.filter(s => s.id !== id));
+  const deleteSlide = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "slides", id));
+    } catch (error) {
+      console.error("Error deleting slide:", error);
+    }
+  };
+
+  const handleSaveAccentColor = async (color: string) => {
+    setAccentColor(color);
+    try {
+      await setDoc(doc(db, "app_settings", "general"), { accentColor: color }, { merge: true });
+    } catch (error) {
+      console.error("Error saving accent color:", error);
+    }
   };
 
   return (
@@ -634,7 +674,7 @@ export default function SettingsManager({
                   {colorPresets.map((color) => (
                     <button
                       key={color.name}
-                      onClick={() => setAccentColor(color.value)}
+                      onClick={() => handleSaveAccentColor(color.value)}
                       className={`group p-6 rounded-3xl border transition-all text-left relative overflow-hidden ${
                         accentColor === color.value 
                         ? 'bg-white/10 border-white/40 ring-2 ring-white/20' 

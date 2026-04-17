@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: articles
+    // Fields: id, title, excerpt, content, date, category, coverImage, authorUid, createdAt
+    //
+    // Collection: slides
+    // Fields: id, title, subtitle, imageUrl, ctaText, order
+    //
+    // Collection: app_settings
+    // Fields: accentColor, maintenanceMode, adminEmail, adminPassword
+    //
+    // Collection: public_files
+    // Fields: id, name, size, type, date, color, uploadedBy
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "admin@athethea.com" || 
+         request.auth.token.email == "ishaqendang048@gmail.com"); // Using system Provided user email
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    }
+
+    function isValidString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    // Collection Rules
+    match /articles/{articleId} {
+      allow read: if true;
+      allow create: if isAdmin() && 
+        isValidString(request.resource.data.title, 1, 200) &&
+        isValidString(request.resource.data.content, 1, 50000);
+      allow update, delete: if isAdmin();
+    }
+
+    match /slides/{slideId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /app_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /public_files/{fileId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

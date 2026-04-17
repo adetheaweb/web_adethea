@@ -1,7 +1,39 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Trash2, Edit3, Image as ImageIcon, Search, X } from "lucide-react";
+import { 
+  collection, 
+  addDoc, 
+  deleteDoc, 
+  doc,
+  updateDoc 
+} from "firebase/firestore";
+import { db, auth } from "../firebase";
 import { Article } from "../types";
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 interface ArticleManagerProps {
   articles: Article[];
@@ -32,25 +64,35 @@ export default function ArticleManager({ articles, setArticles }: ArticleManager
     }
   };
 
-  const handleAddArticle = (e: React.FormEvent) => {
+  const handleAddArticle = async (e: React.FormEvent) => {
     e.preventDefault();
-    const article: Article = {
-      id: Date.now().toString(),
+    const articleData = {
       title: newArticle.title,
       excerpt: newArticle.excerpt,
       content: newArticle.content || "Konten artikel ini akan segera hadir...",
       date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
       category: newArticle.category,
       coverImage: newArticle.coverImage || `https://picsum.photos/seed/${Date.now()}/800/400`,
-      externalUrl: newArticle.externalUrl
+      externalUrl: newArticle.externalUrl,
+      authorUid: auth.currentUser?.uid || "admin",
+      createdAt: new Date().toISOString()
     };
-    setArticles([article, ...articles]);
-    setIsAdding(false);
-    setNewArticle({ title: "", excerpt: "", content: "", category: "General", externalUrl: "", coverImage: "" });
+
+    try {
+      await addDoc(collection(db, "articles"), articleData);
+      setIsAdding(false);
+      setNewArticle({ title: "", excerpt: "", content: "", category: "General", externalUrl: "", coverImage: "" });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, "articles");
+    }
   };
 
-  const deleteArticle = (id: string) => {
-    setArticles(articles.filter(a => a.id !== id));
+  const deleteArticle = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "articles", id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `articles/${id}`);
+    }
   };
 
   const filteredArticles = articles.filter(a => 

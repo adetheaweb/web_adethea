@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import { Lock, Mail, ChevronRight, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
 
 interface LoginProps {
   onLogin: () => void;
@@ -14,20 +16,23 @@ export default function Login({ onLogin, actualEmail, actualPassword }: LoginPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Simulate login
-    setTimeout(() => {
-      if (email === actualEmail && password === actualPassword) {
-        onLogin();
-      } else {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      onLogin();
+    } catch (err: any) {
+      console.error("Login error:", err);
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
         setError("Email atau password administrator salah.");
-        setLoading(false);
+      } else {
+        setError("Terjadi kesalahan sistem. Silakan coba lagi.");
       }
-    }, 1500);
+      setLoading(false);
+    }
   };
 
   return (
