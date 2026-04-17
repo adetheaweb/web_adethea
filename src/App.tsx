@@ -274,7 +274,7 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                <ArticleManager articles={articles} setArticles={setArticles} />
+                <ArticleManager articles={articles} setArticles={setArticles} isReadOnly={true} />
               </motion.div>
             ) : activeTab === "3" ? (
               <motion.div
@@ -311,6 +311,8 @@ export default function App() {
                 <SettingsManager 
                   slides={slides} 
                   setSlides={setSlides} 
+                  articles={articles}
+                  setArticles={setArticles}
                   uploadedFiles={uploadedFiles}
                   setUploadedFiles={setUploadedFiles}
                   accentColor={accentColor} 

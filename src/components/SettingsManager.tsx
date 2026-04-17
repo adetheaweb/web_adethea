@@ -40,11 +40,14 @@ import {
   FileText,
   Loader2,
 } from "lucide-react";
-import { SlideItem, FileItem } from "../types";
+import { SlideItem, FileItem, Article } from "../types";
+import ArticleManager from "./ArticleManager";
 
 interface SettingsManagerProps {
   slides: SlideItem[];
   setSlides: React.Dispatch<React.SetStateAction<SlideItem[]>>;
+  articles: Article[];
+  setArticles: React.Dispatch<React.SetStateAction<Article[]>>;
   uploadedFiles: FileItem[];
   setUploadedFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
   accentColor: string;
@@ -57,6 +60,8 @@ interface SettingsManagerProps {
 export default function SettingsManager({ 
   slides, 
   setSlides, 
+  articles,
+  setArticles,
   uploadedFiles, 
   setUploadedFiles, 
   accentColor, 
@@ -188,6 +193,7 @@ export default function SettingsManager({
 
   const settingsTabs = [
     { id: "profile", label: "Profil", icon: User },
+    { id: "articles", label: "Manajemen Artikel", icon: BookOpen },
     { id: "social", label: "Media Sosial", icon: Share2 },
     { id: "slider", label: "Slider Hero", icon: Sliders },
     { id: "security", label: "Keamanan", icon: Lock },
@@ -711,6 +717,10 @@ export default function SettingsManager({
               </div>
             )}
 
+            {activeTab === "articles" && (
+              <ArticleManager articles={articles} setArticles={setArticles} />
+            )}
+
             {activeTab === "files" && (
               <div className="space-y-8">
                 <div className="flex items-center justify-between mb-4">
@@ -879,7 +889,7 @@ export default function SettingsManager({
               </div>
             )}
 
-            {activeTab !== "profile" && activeTab !== "slider" && activeTab !== "security" && activeTab !== "appearance" && activeTab !== "social" && activeTab !== "guide" && activeTab !== "files" && (
+            {activeTab !== "profile" && activeTab !== "slider" && activeTab !== "security" && activeTab !== "appearance" && activeTab !== "social" && activeTab !== "guide" && activeTab !== "files" && activeTab !== "articles" && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 text-white/20">
                   <ShieldCheck size={40} />

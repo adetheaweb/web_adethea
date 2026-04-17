@@ -38,9 +38,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 interface ArticleManagerProps {
   articles: Article[];
   setArticles: React.Dispatch<React.SetStateAction<Article[]>>;
+  isReadOnly?: boolean;
 }
 
-export default function ArticleManager({ articles, setArticles }: ArticleManagerProps) {
+export default function ArticleManager({ articles, setArticles, isReadOnly = false }: ArticleManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [search, setSearch] = useState("");
@@ -104,16 +105,24 @@ export default function ArticleManager({ articles, setArticles }: ArticleManager
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl lg:text-5xl font-black text-white mb-2 leading-tight">Pengelolaan Artikel</h1>
-          <p className="text-white/60">Buat, edit, dan publikasikan artikel terbaru Anda ke seluruh dunia.</p>
+          <h1 className="text-4xl lg:text-5xl font-black text-white mb-2 leading-tight">
+            {isReadOnly ? "Daftar Artikel" : "Pengelolaan Artikel"}
+          </h1>
+          <p className="text-white/60">
+            {isReadOnly 
+              ? "Telusuri wawasan terkini dan berita terbaru dari Athethea." 
+              : "Buat, edit, dan publikasikan artikel terbaru Anda ke seluruh dunia."}
+          </p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="flex items-center gap-3 bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold hover:scale-105 transition-all shadow-xl shadow-indigo-500/10"
-        >
-          <Plus size={20} />
-          Tulis Artikel Baru
-        </button>
+        {!isReadOnly && (
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-3 bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold hover:scale-105 transition-all shadow-xl shadow-indigo-500/10"
+          >
+            <Plus size={20} />
+            Tulis Artikel Baru
+          </button>
+        )}
       </div>
 
       {/* Filter and Search */}
@@ -184,23 +193,25 @@ export default function ArticleManager({ articles, setArticles }: ArticleManager
                       Kunjungi Link
                     </a>
                   )}
-                  <div className="flex gap-2 ml-auto">
-                    <button 
-                      onClick={() => setSelectedArticle(article)}
-                      className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/60 hover:text-white transition-all"
-                    >
-                      <Edit3 size={18} />
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteArticle(article.id);
-                      }}
-                      className="p-3 bg-red-500/10 hover:bg-red-500/20 rounded-xl text-red-500 transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+                  {!isReadOnly && (
+                    <div className="flex gap-2 ml-auto">
+                      <button 
+                        onClick={() => setSelectedArticle(article)}
+                        className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/60 hover:text-white transition-all"
+                      >
+                        <Edit3 size={18} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteArticle(article.id);
+                        }}
+                        className="p-3 bg-red-500/10 hover:bg-red-500/20 rounded-xl text-red-500 transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
