@@ -27,6 +27,8 @@ export default function App() {
   ]);
   const [accentColor, setAccentColor] = useState("#6366f1"); // Indigo primary
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("admin@athethea.com");
+  const [adminPassword, setAdminPassword] = useState("admin123");
 
   // Sync state with URL path
   useEffect(() => {
@@ -92,7 +94,11 @@ export default function App() {
                 exit={{ opacity: 0, scale: 1.05 }}
                 transition={{ duration: 0.4 }}
               >
-                <Login onLogin={() => setIsLoggedIn(true)} />
+                <Login 
+                  onLogin={() => setIsLoggedIn(true)} 
+                  actualEmail={adminEmail}
+                  actualPassword={adminPassword}
+                />
               </motion.div>
             ) : activeTab === "1" ? (
               <motion.div
@@ -226,6 +232,9 @@ export default function App() {
                   setUploadedFiles={setUploadedFiles}
                   accentColor={accentColor} 
                   setAccentColor={setAccentColor} 
+                  adminEmail={adminEmail}
+                  adminPassword={adminPassword}
+                  setAdminPassword={setAdminPassword}
                 />
               </motion.div>
             ) : (

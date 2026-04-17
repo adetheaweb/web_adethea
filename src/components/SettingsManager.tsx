@@ -40,6 +40,9 @@ interface SettingsManagerProps {
   setUploadedFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
   accentColor: string;
   setAccentColor: React.Dispatch<React.SetStateAction<string>>;
+  adminEmail: string;
+  adminPassword: string;
+  setAdminPassword: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export default function SettingsManager({ 
@@ -48,7 +51,10 @@ export default function SettingsManager({
   uploadedFiles, 
   setUploadedFiles, 
   accentColor, 
-  setAccentColor 
+  setAccentColor,
+  adminEmail,
+  adminPassword,
+  setAdminPassword
 }: SettingsManagerProps) {
   const [activeTab, setActiveTab] = useState("profile");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -140,12 +146,18 @@ export default function SettingsManager({
       return;
     }
 
+    if (currentPass !== adminPassword) {
+      setPassFeedback({ type: 'error', message: 'Password saat ini salah.' });
+      return;
+    }
+
     setIsSavingPass(true);
     setPassFeedback(null);
 
     // Simulate saving
     setTimeout(() => {
       setIsSavingPass(false);
+      setAdminPassword(newPass);
       setPassFeedback({ type: 'success', message: 'Password admin berhasil diperbarui!' });
       setCurrentPass("");
       setNewPass("");

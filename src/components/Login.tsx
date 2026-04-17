@@ -4,9 +4,11 @@ import { Lock, Mail, ChevronRight, Loader2, ShieldCheck, AlertCircle } from "luc
 
 interface LoginProps {
   onLogin: () => void;
+  actualEmail: string;
+  actualPassword: string;
 }
 
-export default function Login({ onLogin }: LoginProps) {
+export default function Login({ onLogin, actualEmail, actualPassword }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,7 @@ export default function Login({ onLogin }: LoginProps) {
 
     // Simulate login
     setTimeout(() => {
-      if (email === "admin@athethea.com" && password === "admin123") {
+      if (email === actualEmail && password === actualPassword) {
         onLogin();
       } else {
         setError("Email atau password administrator salah.");
