@@ -20,7 +20,7 @@ import {
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "./firebase";
 import { SLIDE_ITEMS } from "./constants";
-import { Article, SlideItem, FileItem } from "./types";
+import { Article, SlideItem, FileItem, SocialLinks } from "./types";
 
 const INITIAL_ARTICLES: Article[] = [];
 
@@ -42,6 +42,12 @@ export default function App() {
   const [adminEmail, setAdminEmail] = useState("drivemyfile2019@gmail.com");
   const [adminPassword, setAdminPassword] = useState("admin123");
   const [whatsappNumber, setWhatsappNumber] = useState("6281234567890");
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({
+    twitter: "@athethea_id",
+    instagram: "@athethea.official",
+    linkedin: "Athethea Technology",
+    github: "athethea-dev"
+  });
 
   // Authentication & Initial Connection Test
   useEffect(() => {
@@ -108,6 +114,7 @@ export default function App() {
         if (data.adminEmail) setAdminEmail(data.adminEmail);
         if (data.adminPassword) setAdminPassword(data.adminPassword);
         if (data.whatsappNumber) setWhatsappNumber(data.whatsappNumber);
+        if (data.socialLinks) setSocialLinks(data.socialLinks);
       }
     });
     return () => unsubscribe();
@@ -324,6 +331,8 @@ export default function App() {
                   setAdminPassword={setAdminPassword}
                   whatsappNumber={whatsappNumber}
                   setWhatsappNumber={setWhatsappNumber}
+                  socialLinks={socialLinks}
+                  setSocialLinks={setSocialLinks}
                 />
               </motion.div>
             ) : (

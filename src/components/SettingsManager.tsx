@@ -41,7 +41,7 @@ import {
   Loader2,
   MessageCircle,
 } from "lucide-react";
-import { SlideItem, FileItem, Article } from "../types";
+import { SlideItem, FileItem, Article, SocialLinks } from "../types";
 import ArticleManager from "./ArticleManager";
 
 interface SettingsManagerProps {
@@ -58,6 +58,8 @@ interface SettingsManagerProps {
   setAdminPassword: React.Dispatch<React.SetStateAction<string>>;
   whatsappNumber: string;
   setWhatsappNumber: React.Dispatch<React.SetStateAction<string>>;
+  socialLinks: SocialLinks;
+  setSocialLinks: React.Dispatch<React.SetStateAction<SocialLinks>>;
 }
 
 export default function SettingsManager({ 
@@ -73,7 +75,9 @@ export default function SettingsManager({
   adminPassword,
   setAdminPassword,
   whatsappNumber,
-  setWhatsappNumber
+  setWhatsappNumber,
+  socialLinks,
+  setSocialLinks
 }: SettingsManagerProps) {
   const [activeTab, setActiveTab] = useState("profile");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -267,6 +271,19 @@ export default function SettingsManager({
     }
   };
 
+  const [isSavingSocials, setIsSavingSocials] = useState(false);
+  const handleSaveSocials = async () => {
+    setIsSavingSocials(true);
+    try {
+      await setDoc(doc(db, "app_settings", "general"), { socialLinks }, { merge: true });
+      // Show some temporary feedback if possible, but for now just stop loading
+      setTimeout(() => setIsSavingSocials(false), 800);
+    } catch (error) {
+      console.error("Error saving social links:", error);
+      setIsSavingSocials(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div>
@@ -396,10 +413,10 @@ export default function SettingsManager({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[
-                    { label: "Twitter", icon: Twitter, color: "text-blue-400", user: "@athethea_id" },
-                    { label: "Instagram", icon: Instagram, color: "text-pink-500", user: "@athethea.official" },
-                    { label: "LinkedIn", icon: Linkedin, color: "text-blue-600", user: "Athethea Technology" },
-                    { label: "GitHub", icon: Github, color: "text-white", user: "athethea-dev" },
+                    { key: "twitter", label: "Twitter", icon: Twitter, color: "text-blue-400" },
+                    { key: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
+                    { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
+                    { key: "github", label: "GitHub", icon: Github, color: "text-white" },
                   ].map((social) => (
                     <div key={social.label} className="bg-white/5 border border-white/10 rounded-2xl p-6 group transition-all hover:bg-white/10">
                       <div className="flex items-center gap-4">
@@ -410,7 +427,8 @@ export default function SettingsManager({
                           <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">{social.label}</label>
                           <input 
                             type="text" 
-                            defaultValue={social.user}
+                            value={socialLinks[social.key as keyof SocialLinks]}
+                            onChange={(e) => setSocialLinks(prev => ({ ...prev, [social.key]: e.target.value }))}
                             className="w-full bg-transparent border-none text-white outline-none p-0 font-bold"
                           />
                         </div>
@@ -419,9 +437,13 @@ export default function SettingsManager({
                   ))}
                 </div>
                 <div className="pt-4">
-                  <button className="flex items-center gap-3 bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold hover:scale-105 transition-all shadow-xl shadow-indigo-500/10">
-                    <Save size={20} />
-                    Hubungkan Akun
+                  <button 
+                    onClick={handleSaveSocials}
+                    disabled={isSavingSocials}
+                    className="flex items-center gap-3 bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold hover:scale-105 transition-all shadow-xl shadow-indigo-500/10 disabled:opacity-50 disabled:cursor-wait"
+                  >
+                    {isSavingSocials ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    {isSavingSocials ? "Menyimpan..." : "Hubungkan Akun"}
                   </button>
                 </div>
               </div>

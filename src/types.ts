@@ -26,3 +26,10 @@ export interface FileItem {
   color?: string;
   icon?: any;
 }
+
+export interface SocialLinks {
+  twitter: string;
+  instagram: string;
+  linkedin: string;
+  github: string;
+}
