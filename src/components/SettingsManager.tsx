@@ -39,6 +39,7 @@ import {
   Download,
   FileText,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { SlideItem, FileItem, Article } from "../types";
 import ArticleManager from "./ArticleManager";
@@ -55,6 +56,8 @@ interface SettingsManagerProps {
   adminEmail: string;
   adminPassword: string;
   setAdminPassword: React.Dispatch<React.SetStateAction<string>>;
+  whatsappNumber: string;
+  setWhatsappNumber: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export default function SettingsManager({ 
@@ -68,7 +71,9 @@ export default function SettingsManager({
   setAccentColor,
   adminEmail,
   adminPassword,
-  setAdminPassword
+  setAdminPassword,
+  whatsappNumber,
+  setWhatsappNumber
 }: SettingsManagerProps) {
   const [activeTab, setActiveTab] = useState("profile");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -253,6 +258,15 @@ export default function SettingsManager({
     }
   };
 
+  const handleSaveWhatsapp = async (num: string) => {
+    setWhatsappNumber(num);
+    try {
+      await setDoc(doc(db, "app_settings", "general"), { whatsappNumber: num }, { merge: true });
+    } catch (error) {
+      console.error("Error saving whatsapp number:", error);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div>
@@ -341,7 +355,45 @@ export default function SettingsManager({
 
             {activeTab === "social" && (
               <div className="space-y-8">
-                <h3 className="text-2xl font-bold text-white mb-6">Akun Media Sosial</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-bold text-white">Akun Media Sosial & Chat</h3>
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full uppercase tracking-tighter">
+                    <Activity size={12} />
+                    Live Sync Aktif
+                  </div>
+                </div>
+
+                {/* WhatsApp Chat Feature */}
+                <div className="bg-linear-to-r from-[#25D366]/20 to-transparent border border-[#25D366]/20 rounded-3xl p-8 mb-8 relative overflow-hidden group">
+                  <div className="absolute -right-8 -bottom-8 text-[#25D366]/10 group-hover:scale-110 transition-transform duration-700">
+                    <MessageCircle size={160} />
+                  </div>
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                      <div className="w-16 h-16 bg-[#25D366] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-[#25D366]/20">
+                        <MessageCircle size={32} />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold text-white mb-1">WhatsApp Chat Support</h4>
+                        <p className="text-white/40 text-sm max-w-sm">Berikan kemudahan pengunjung untuk langsung menghubungi Anda via WhatsApp.</p>
+                      </div>
+                    </div>
+                    <div className="flex-1 max-w-xs">
+                       <label className="text-[10px] font-bold text-[#25D366] uppercase tracking-widest block mb-2">Nomor WA (Gunakan Kode Negara)</label>
+                       <div className="relative">
+                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 font-mono text-sm">+</span>
+                         <input 
+                           type="text" 
+                           placeholder="62812..."
+                           value={whatsappNumber}
+                           onChange={(e) => handleSaveWhatsapp(e.target.value.replace(/\D/g, ''))}
+                           className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-8 pr-6 text-white outline-none focus:border-[#25D366]/50 transition-all font-mono"
+                         />
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[
                     { label: "Twitter", icon: Twitter, color: "text-blue-400", user: "@athethea_id" },
