@@ -39,7 +39,7 @@ export default function App() {
   const [accentColor, setAccentColor] = useState("#6366f1"); // Indigo primary
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [adminEmail, setAdminEmail] = useState("admin@athethea.com");
+  const [adminEmail, setAdminEmail] = useState("drivemyfile2019@gmail.com");
   const [adminPassword, setAdminPassword] = useState("admin123");
 
   // Authentication & Initial Connection Test

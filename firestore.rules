@@ -27,7 +27,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-        (request.auth.token.email == "admin@athethea.com" || 
+        (request.auth.token.email == "drivemyfile2019@gmail.com" || 
+         request.auth.token.email == "admin@athethea.com" || 
          request.auth.token.email == "ishaqendang048@gmail.com"); // Using system Provided user email
     }
 

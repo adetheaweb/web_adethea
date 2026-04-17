@@ -63,7 +63,7 @@ export default function Login({ onLogin, actualEmail, actualPassword }: LoginPro
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@athethea.com"
+                  placeholder="drivemyfile2019@gmail.com"
                   required
                   className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white outline-none focus:bg-white/10 focus:border-white/20 transition-all"
                 />
