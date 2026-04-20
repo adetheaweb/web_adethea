@@ -7,6 +7,7 @@ export interface Article {
   category: string;
   coverImage: string;
   externalUrl?: string;
+  gallery?: string[];
 }
 
 export interface SlideItem {

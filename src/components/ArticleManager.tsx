@@ -51,7 +51,8 @@ export default function ArticleManager({ articles, setArticles, isReadOnly = fal
     content: "",
     category: "General",
     externalUrl: "",
-    coverImage: ""
+    coverImage: "",
+    gallery: [] as string[]
   });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +66,33 @@ export default function ArticleManager({ articles, setArticles, isReadOnly = fal
     }
   };
 
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const remainingSlots = 10 - newArticle.gallery.length;
+      const filesArray = Array.from(files) as File[];
+      const filesToProcess = filesArray.slice(0, remainingSlots);
+
+      filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setNewArticle(prev => ({
+            ...prev,
+            gallery: [...prev.gallery, reader.result as string]
+          }));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setNewArticle(prev => ({
+      ...prev,
+      gallery: prev.gallery.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleAddArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     const articleData = {
@@ -74,6 +102,7 @@ export default function ArticleManager({ articles, setArticles, isReadOnly = fal
       date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
       category: newArticle.category,
       coverImage: newArticle.coverImage || `https://picsum.photos/seed/${Date.now()}/800/400`,
+      gallery: newArticle.gallery,
       externalUrl: newArticle.externalUrl,
       authorUid: auth.currentUser?.uid || "admin",
       createdAt: new Date().toISOString()
@@ -82,7 +111,7 @@ export default function ArticleManager({ articles, setArticles, isReadOnly = fal
     try {
       await addDoc(collection(db, "articles"), articleData);
       setIsAdding(false);
-      setNewArticle({ title: "", excerpt: "", content: "", category: "General", externalUrl: "", coverImage: "" });
+      setNewArticle({ title: "", excerpt: "", content: "", category: "General", externalUrl: "", coverImage: "", gallery: [] });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, "articles");
     }
@@ -322,6 +351,45 @@ export default function ArticleManager({ articles, setArticles, isReadOnly = fal
                   />
                 </div>
 
+                <div>
+                  <label className="text-white/40 text-xs font-bold uppercase tracking-wider block mb-4 flex items-center justify-between">
+                    Galeri Gambar Tambahan
+                    <span className="text-[10px] lowercase font-normal opacity-50 underline">{newArticle.gallery.length}/10 gambar</span>
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {newArticle.gallery.map((img, idx) => (
+                      <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-white/10">
+                        <img src={img} className="w-full h-full object-cover" alt={`Gallery ${idx}`} />
+                        <button 
+                          type="button"
+                          onClick={() => removeGalleryImage(idx)}
+                          className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    ))}
+                    {newArticle.gallery.length < 10 && (
+                      <button 
+                        type="button"
+                        onClick={() => document.getElementById('galleryInput')?.click()}
+                        className="aspect-square bg-white/5 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-white/20 hover:bg-white/10 hover:border-white/20 transition-all group"
+                      >
+                        <Plus size={24} className="group-hover:text-white/40 transition-colors" />
+                        <span className="text-[10px] mt-2 group-hover:text-white/40 font-bold uppercase tracking-tighter">Tambah</span>
+                        <input 
+                          type="file" 
+                          id="galleryInput"
+                          multiple
+                          accept="image/*"
+                          onChange={handleGalleryUpload}
+                          className="hidden" 
+                        />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex gap-4 pt-4">
                   <button 
                     type="button"
@@ -403,6 +471,34 @@ export default function ArticleManager({ articles, setArticles, isReadOnly = fal
                     {selectedArticle.content}
                   </div>
                 </div>
+
+                {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
+                  <div className="mt-12 space-y-6">
+                    <h4 className="text-xl font-bold text-white flex items-center gap-2">
+                       <ImageIcon size={20} className="text-indigo-400" />
+                       Galeri Gambar
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                      {selectedArticle.gallery.map((img, idx) => (
+                        <motion.div 
+                          key={idx}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.1 }}
+                          className="aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-xl group cursor-zoom-in"
+                        >
+                          <img 
+                            src={img} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                            alt={`Gallery ${idx}`}
+                            referrerPolicy="no-referrer"
+                            onClick={() => window.open(img, '_blank')}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
