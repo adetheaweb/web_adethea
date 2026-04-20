@@ -32,11 +32,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("1"); // 1 = Beranda, 2 = Artikel, 5 = Pengaturan
   const [articles, setArticles] = useState<Article[]>(INITIAL_ARTICLES);
   const [slides, setSlides] = useState<SlideItem[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([
-    { id: '1', name: "Sistem_Konfigurasi_Athethea.json", size: "12 KB", type: "JSON", date: "Baru saja", color: "text-amber-400" },
-    { id: '2', name: "Dokumen_Panduan_Admin.pdf", size: "1.2 MB", type: "PDF", date: "1 jam lalu", color: "text-blue-400" }
-  ]);
+  const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([]);
   const [accentColor, setAccentColor] = useState("#6366f1"); // Indigo primary
+  const [siteLogo, setSiteLogo] = useState<string | null>(null);
+  const [siteName, setSiteName] = useState("Adetheaweb");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [adminEmail, setAdminEmail] = useState("drivemyfile2019@gmail.com");
@@ -111,6 +110,8 @@ export default function App() {
       if (doc.exists()) {
         const data = doc.data();
         if (data.accentColor) setAccentColor(data.accentColor);
+        if (data.siteLogo) setSiteLogo(data.siteLogo);
+        if (data.siteName) setSiteName(data.siteName);
         if (data.adminEmail) setAdminEmail(data.adminEmail);
         if (data.adminPassword) setAdminPassword(data.adminPassword);
         if (data.whatsappNumber) setWhatsappNumber(data.whatsappNumber);
@@ -119,6 +120,25 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Update favicon and title dynamically
+  useEffect(() => {
+    document.title = siteName;
+    
+    let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+    
+    if (siteLogo) {
+      link.href = siteLogo;
+    } else {
+      // Default placeholder if no logo
+      link.href = "https://picsum.photos/seed/adethea/32/32";
+    }
+  }, [siteLogo, siteName]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -172,6 +192,8 @@ export default function App() {
         onNavigate={handleNavigate} 
         isLoggedIn={isLoggedIn} 
         onLogout={handleLogout} 
+        siteLogo={siteLogo}
+        siteName={siteName}
       />
 
       {/* Main Content Area */}
@@ -209,7 +231,7 @@ export default function App() {
                     <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4 text-white/20">
                       <Sliders size={32} />
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Selamat Datang di Athethea</h3>
+                    <h3 className="text-xl font-bold text-white mb-2">Selamat Datang di {siteName}</h3>
                     <p className="text-white/40 max-w-sm">Siap untuk memulai? Tambahkan slider hero pertama Anda melalui menu Pengaturan.</p>
                   </div>
                 )}
@@ -326,6 +348,10 @@ export default function App() {
                   setUploadedFiles={setUploadedFiles}
                   accentColor={accentColor} 
                   setAccentColor={setAccentColor} 
+                  siteLogo={siteLogo}
+                  setSiteLogo={setSiteLogo}
+                  siteName={siteName}
+                  setSiteName={setSiteName}
                   adminEmail={adminEmail}
                   adminPassword={adminPassword}
                   setAdminPassword={setAdminPassword}

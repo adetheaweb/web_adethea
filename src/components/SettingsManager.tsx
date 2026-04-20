@@ -53,6 +53,10 @@ interface SettingsManagerProps {
   setUploadedFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
   accentColor: string;
   setAccentColor: React.Dispatch<React.SetStateAction<string>>;
+  siteLogo: string | null;
+  setSiteLogo: React.Dispatch<React.SetStateAction<string | null>>;
+  siteName: string;
+  setSiteName: React.Dispatch<React.SetStateAction<string>>;
   adminEmail: string;
   adminPassword: string;
   setAdminPassword: React.Dispatch<React.SetStateAction<string>>;
@@ -71,6 +75,10 @@ export default function SettingsManager({
   setUploadedFiles, 
   accentColor, 
   setAccentColor,
+  siteLogo,
+  setSiteLogo,
+  siteName,
+  setSiteName,
   adminEmail,
   adminPassword,
   setAdminPassword,
@@ -96,7 +104,36 @@ export default function SettingsManager({
   const [newFileName, setNewFileName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [activeSlideForPhoto, setActiveSlideForPhoto] = useState<string | null>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        if (event.target?.result) {
+          const logoData = event.target.result as string;
+          setSiteLogo(logoData);
+          try {
+            await setDoc(doc(db, "app_settings", "general"), { siteLogo: logoData }, { merge: true });
+          } catch (error) {
+            console.error("Error saving site logo:", error);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSiteNameChange = async (name: string) => {
+    setSiteName(name);
+    try {
+      await setDoc(doc(db, "app_settings", "general"), { siteName: name }, { merge: true });
+    } catch (error) {
+      console.error("Error saving site name:", error);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,34 +165,48 @@ export default function SettingsManager({
       setFileUploadProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(() => {
-            setIsFilesUploading(false);
-            setIsFileModalOpen(false);
-            
+          
+          const finalizeUpload = async () => {
             const fileExt = newFileName.split('.').pop()?.toUpperCase() || 'ZIP';
             let iconColor = "text-blue-400";
             if (fileExt === 'JSON') iconColor = "text-amber-400";
             if (fileExt === 'ZIP') iconColor = "text-purple-400";
             if (fileExt === 'PDF') iconColor = "text-rose-400";
 
-            setUploadedFiles([
-              { 
-                id: Date.now().toString(), 
-                name: newFileName.includes('.') ? newFileName : `${newFileName}.zip`, 
-                size: "2.5 MB", 
-                type: fileExt, 
-                date: "Baru saja",
-                color: iconColor
-              },
-              ...uploadedFiles
-            ]);
-            setNewFileName("");
-          }, 500);
+            const newFile = { 
+              name: newFileName.includes('.') ? newFileName : `${newFileName}.zip`, 
+              size: "2.5 MB", 
+              type: fileExt, 
+              date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+              color: iconColor,
+              createdAt: new Date().toISOString()
+            };
+
+            try {
+              await addDoc(collection(db, "public_files"), newFile);
+              setIsFilesUploading(false);
+              setIsFileModalOpen(false);
+              setNewFileName("");
+            } catch (error) {
+              console.error("Upload to Firestore error:", error);
+              setIsFilesUploading(false);
+            }
+          };
+
+          finalizeUpload();
           return 100;
         }
         return prev + 10;
       });
     }, 200);
+  };
+
+  const deleteFile = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "public_files", id));
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    }
   };
 
   const handlePasswordSave = () => {
@@ -747,9 +798,63 @@ export default function SettingsManager({
 
             {activeTab === "appearance" && (
               <div className="space-y-8">
-                <h3 className="text-2xl font-bold text-white mb-2">Personalisasi Tampilan</h3>
-                <p className="text-white/40 text-sm mb-8">Sesuaikan warna aksen Athethea untuk mencerminkan identitas brand Anda.</p>
+                <h3 className="text-2xl font-bold text-white mb-2">Identitas & Tampilan</h3>
+                <p className="text-white/40 text-sm mb-8">Keluarkan identitas brand Adetheaweb melalui logo dan skema warna yang unik.</p>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                   <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
+                      <label className="text-xs font-bold text-white/40 uppercase tracking-widest pl-1 mb-4 block">Logo Situs</label>
+                      <div className="flex flex-col items-center gap-6">
+                         <div className="w-32 h-32 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden relative group">
+                            {siteLogo ? (
+                               <img src={siteLogo} className="w-full h-full object-cover" alt="Logo preview" />
+                            ) : (
+                               <div className="text-white/20 flex flex-col items-center">
+                                  <ImageIcon size={40} />
+                                  <span className="text-[10px] mt-2 font-bold uppercase tracking-tighter">No Logo</span>
+                               </div>
+                            )}
+                            <button 
+                              onClick={() => logoInputRef.current?.click()}
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold"
+                            >
+                               Ganti Logo
+                            </button>
+                         </div>
+                         <input 
+                           type="file" 
+                           ref={logoInputRef}
+                           onChange={handleLogoChange}
+                           accept="image/*"
+                           className="hidden" 
+                         />
+                         <p className="text-[10px] text-white/20 text-center">Rekomendasi: File PNG atau SVG transparan (maks. 2MB)</p>
+                      </div>
+                   </div>
+
+                   <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
+                      <label className="text-xs font-bold text-white/40 uppercase tracking-widest pl-1 mb-4 block">Nama Website</label>
+                      <div className="space-y-4">
+                         <input 
+                           type="text" 
+                           value={siteName}
+                           onChange={(e) => handleSiteNameChange(e.target.value)}
+                           className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-6 text-white font-bold outline-none focus:border-indigo-500/50 transition-all"
+                         />
+                         <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                            <p className="text-[10px] text-indigo-300 leading-relaxed uppercase tracking-widest font-black">Pratinjau Navigasi</p>
+                            <div className="mt-2 flex items-center gap-3">
+                               <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                  {siteLogo ? <img src={siteLogo} className="w-full h-full object-cover rounded-lg" /> : siteName.charAt(0)}
+                               </div>
+                               <span className="text-white font-bold text-sm tracking-tight">{siteName}</span>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                <h4 className="text-xl font-bold text-white mb-4">Warna Aksen Global</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                   {colorPresets.map((color) => (
                     <button
@@ -847,7 +952,7 @@ export default function SettingsManager({
                           </div>
                         </div>
                         <button 
-                          onClick={() => setUploadedFiles(uploadedFiles.filter(f => f.id !== file.id))}
+                          onClick={() => deleteFile(file.id)}
                           className="p-2 text-white/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Trash2 size={18} />

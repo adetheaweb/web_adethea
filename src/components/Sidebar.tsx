@@ -34,9 +34,11 @@ interface SidebarProps {
   onNavigate: (id: string) => void;
   isLoggedIn: boolean;
   onLogout: () => void;
+  siteLogo: string | null;
+  siteName: string;
 }
 
-export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout }: SidebarProps) {
+export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout, siteLogo, siteName }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -65,10 +67,14 @@ export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout }: 
             onClick={() => onNavigate("1")}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 bg-linear-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">A</span>
+            <div className="w-8 h-8 bg-linear-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center overflow-hidden">
+              {siteLogo ? (
+                <img src={siteLogo} className="w-full h-full object-cover" alt="Logo" />
+              ) : (
+                <span className="text-white font-bold text-lg">{siteName.charAt(0).toUpperCase()}</span>
+              )}
             </div>
-            <span className="font-bold text-xl tracking-tight bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Athethea</span>
+            <span className="font-bold text-xl tracking-tight bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{siteName}</span>
           </button>
           <button 
             onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -141,8 +147,12 @@ export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout }: 
           onClick={() => onNavigate("1")}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
-          <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20">
-            <span className="text-white font-bold text-xl">A</span>
+          <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20 overflow-hidden">
+            {siteLogo ? (
+              <img src={siteLogo} className="w-full h-full object-cover" alt="Logo" />
+            ) : (
+              <span className="text-white font-bold text-xl">{siteName.charAt(0).toUpperCase()}</span>
+            )}
           </div>
           {isOpen && (
             <motion.span
@@ -150,7 +160,7 @@ export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout }: 
               animate={{ opacity: 1 }}
               className="font-bold text-2xl tracking-tighter bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
             >
-              Athethea
+              {siteName}
             </motion.span>
           )}
         </button>
