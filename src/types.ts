@@ -25,6 +25,8 @@ export interface FileItem {
   size: string;
   type: string;
   date: string;
+  content?: string;
+  href?: string;
   color?: string;
   icon?: any;
 }

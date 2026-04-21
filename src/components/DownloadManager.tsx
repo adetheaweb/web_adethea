@@ -22,6 +22,7 @@ export default function DownloadManager({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [newFileName, setNewFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Map file extension to Lucide components
   const getFileIcon = (type: string) => {
@@ -41,64 +42,91 @@ export default function DownloadManager({
     file.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDownload = (fileName: string) => {
-    setDownloading(fileName);
+  const handleDownload = (file: FileItem) => {
+    setDownloading(file.id);
     
-    // Simulate network delay
+    // Process "download"
     setTimeout(() => {
+      if (file.content) {
+        const link = document.createElement('a');
+        link.href = file.content;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (file.href) {
+        window.open(file.href, '_blank');
+      }
+      
       setDownloading(null);
-      setCompleted(fileName);
+      setCompleted(`Berhasil Mengunduh: ${file.name}`);
       
       // Auto hide success message
       setTimeout(() => setCompleted(null), 3000);
-    }, 2000);
+    }, 1500);
   };
 
-  const simulateUpload = () => {
-    if (!newFileName || !setUploadedFiles) return;
+  const handleFileUpload = () => {
+    if (!selectedFile) return;
     setIsUploading(true);
     setUploadProgress(0);
     
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          
-          const finalizeUpload = async () => {
-            const fileExt = newFileName.split('.').pop()?.toUpperCase() || 'ZIP';
-            let iconColor = "text-blue-400";
-            if (fileExt === 'JSON') iconColor = "text-amber-400";
-            if (fileExt === 'ZIP') iconColor = "text-purple-400";
-            if (fileExt === 'PDF') iconColor = "text-rose-400";
+    const reader = new FileReader();
+    
+    reader.onprogress = (data) => {
+      if (data.lengthComputable) {
+        const progress = Math.round((data.loaded / data.total) * 100);
+        setUploadProgress(progress);
+      }
+    };
 
-            const newFile = { 
-              name: newFileName.includes('.') ? newFileName : `${newFileName}.zip`, 
-              size: "2.5 MB", 
-              type: fileExt, 
-              date: "Baru saja",
-              color: iconColor,
-              createdAt: new Date().toISOString()
-            };
+    reader.onload = async (e) => {
+      const content = e.target?.result as string;
+      const fileExt = selectedFile.name.split('.').pop()?.toUpperCase() || 'FILE';
+      
+      let iconColor = "text-blue-400";
+      if (fileExt === 'JSON') iconColor = "text-amber-400";
+      if (fileExt === 'ZIP') iconColor = "text-purple-400";
+      if (fileExt === 'PDF') iconColor = "text-rose-400";
 
-            try {
-              await addDoc(collection(db, "public_files"), newFile);
-              setIsUploading(false);
-              setIsUploadModalOpen(false);
-              setCompleted(`File "${newFileName}" Berhasil Diunggah`);
-              setNewFileName("");
-              setTimeout(() => setCompleted(null), 3000);
-            } catch (error) {
-              console.error("Upload to Firestore error:", error);
-              setIsUploading(false);
-            }
-          };
+      const newFile = { 
+        name: newFileName || selectedFile.name, 
+        size: (selectedFile.size / (1024 * 1024)).toFixed(2) + " MB", 
+        type: fileExt, 
+        date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        content: content,
+        color: iconColor,
+        createdAt: new Date().toISOString()
+      };
 
-          finalizeUpload();
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
+      try {
+        await addDoc(collection(db, "public_files"), newFile);
+        setIsUploading(false);
+        setIsUploadModalOpen(false);
+        setCompleted(`File "${newFileName || selectedFile.name}" Berhasil Diunggah`);
+        setNewFileName("");
+        setSelectedFile(null);
+        setTimeout(() => setCompleted(null), 3000);
+      } catch (error) {
+        console.error("Upload to Firestore error:", error);
+        setIsUploading(false);
+      }
+    };
+
+    reader.onerror = () => {
+      console.error("File reading error");
+      setIsUploading(false);
+    };
+
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setNewFileName(file.name);
+    }
   };
 
   return (
@@ -178,20 +206,20 @@ export default function DownloadManager({
                 </div>
 
                 <button 
-                  onClick={() => handleDownload(file.name)}
+                  onClick={() => handleDownload(file)}
                   disabled={downloading !== null}
                   className={`flex items-center gap-3 px-6 py-3 rounded-xl font-bold transition-all group/btn min-w-[140px] justify-center ${
-                    downloading === file.name 
+                    downloading === file.id 
                     ? 'bg-white/5 text-white/40 cursor-wait' 
                     : 'bg-white/10 hover:bg-white text-white hover:text-indigo-600'
                   }`}
                 >
-                  {downloading === file.name ? (
+                  {downloading === file.id ? (
                     <Loader2 size={18} className="animate-spin" />
                   ) : (
                     <Download size={18} className="group-hover/btn:scale-110 transition-transform" />
                   )}
-                  <span>{downloading === file.name ? 'Proses...' : 'Unduh'}</span>
+                  <span>{downloading === file.id ? 'Proses...' : 'Unduh'}</span>
                 </button>
               </motion.div>
             );
@@ -244,10 +272,19 @@ export default function DownloadManager({
                 <div className="space-y-6">
                   {!isUploading ? (
                     <>
-                      <div className="bg-white/5 border-2 border-dashed border-white/10 rounded-3xl p-10 text-center group hover:border-indigo-500/30 transition-all cursor-pointer">
+                      <div className="bg-white/5 border-2 border-dashed border-white/10 rounded-3xl p-10 text-center group hover:border-indigo-500/30 transition-all cursor-pointer relative overflow-hidden">
+                        <input 
+                          type="file" 
+                          onChange={onFileSelect}
+                          className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                        />
                         <Upload size={40} className="mx-auto text-white/20 mb-4 group-hover:text-indigo-400 transition-colors" />
-                        <p className="text-white font-bold mb-1">Klik untuk memilih file</p>
-                        <p className="text-white/30 text-xs uppercase tracking-widest font-bold">Maks. 512 MB</p>
+                        <p className="text-white font-bold mb-1 truncate px-4">
+                          {selectedFile ? selectedFile.name : "Klik untuk memilih file"}
+                        </p>
+                        <p className="text-white/30 text-[10px] uppercase tracking-widest font-bold">
+                          {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : "Maks. 10 MB Disarankan"}
+                        </p>
                       </div>
 
                       <div className="space-y-4">
@@ -273,8 +310,9 @@ export default function DownloadManager({
                       </div>
 
                       <button 
-                        onClick={simulateUpload}
-                        className="w-full bg-white text-indigo-600 py-4 rounded-2xl font-black text-sm uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        onClick={handleFileUpload}
+                        disabled={!selectedFile}
+                        className="w-full bg-white text-indigo-600 py-4 rounded-2xl font-black text-sm uppercase tracking-wider hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Mulai Proses Upload
                       </button>
