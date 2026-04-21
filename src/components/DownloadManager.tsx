@@ -47,22 +47,43 @@ export default function DownloadManager({
     
     // Process "download"
     setTimeout(() => {
-      if (file.content) {
-        const link = document.createElement('a');
-        link.href = file.content;
-        link.download = file.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else if (file.href) {
-        window.open(file.href, '_blank');
+      try {
+        if (file.content && file.content.startsWith('data:')) {
+          // Convert data URL to Blob for better browser compatibility (especially in iframes)
+          const [header, base64Data] = file.content.split(';base64,');
+          const contentType = header.split(':')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: contentType });
+          
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = file.name;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Cleanup
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } else if (file.href) {
+          window.open(file.href, '_blank');
+        }
+        
+        setCompleted(`Berhasil Mengunduh: ${file.name}`);
+      } catch (error) {
+        console.error("Download failed:", error);
+        setCompleted("Gagal mengunduh file");
+      } finally {
+        setDownloading(null);
+        // Auto hide success message
+        setTimeout(() => setCompleted(null), 3000);
       }
-      
-      setDownloading(null);
-      setCompleted(`Berhasil Mengunduh: ${file.name}`);
-      
-      // Auto hide success message
-      setTimeout(() => setCompleted(null), 3000);
     }, 1500);
   };
 

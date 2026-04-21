@@ -116,7 +116,11 @@ export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout, si
                     <button
                       key={item.id}
                       onClick={() => {
-                        onNavigate(item.id);
+                        if (item.isExternal) {
+                          window.open(item.href, "_blank");
+                        } else {
+                          onNavigate(item.id);
+                        }
                         setShowMobileMenu(false);
                       }}
                       className={`flex items-center gap-4 p-4 text-lg font-medium rounded-xl transition-all w-full text-left ${
@@ -187,7 +191,13 @@ export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout, si
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => {
+                if (item.isExternal) {
+                  window.open(item.href, "_blank");
+                } else {
+                  onNavigate(item.id);
+                }
+              }}
               className={`flex items-center gap-4 p-4 rounded-2xl transition-all group relative w-full text-left ${
                 activeId === item.id ? 'bg-white/10 text-white shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
