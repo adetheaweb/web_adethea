@@ -52,6 +52,7 @@ export default function ArticleManager({
   setSelectedArticle
 }: ArticleManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const [newArticle, setNewArticle] = useState({
@@ -62,8 +63,23 @@ export default function ArticleManager({
     externalUrl: "",
     coverImage: "",
     gallery: [] as string[],
-    textAlign: "left" as const
+    textAlign: "left" as 'left' | 'center' | 'right' | 'justify'
   });
+
+  const openEditModal = (article: Article) => {
+    setNewArticle({
+      title: article.title,
+      excerpt: article.excerpt,
+      content: article.content,
+      category: article.category,
+      externalUrl: article.externalUrl || "",
+      coverImage: article.coverImage,
+      gallery: article.gallery || [],
+      textAlign: article.textAlign || "left"
+    });
+    setEditingId(article.id);
+    setIsAdding(true);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,19 +159,27 @@ export default function ArticleManager({
       title: newArticle.title,
       excerpt: newArticle.excerpt,
       content: newArticle.content || "Konten artikel ini akan segera hadir...",
-      date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
       category: newArticle.category,
       coverImage: newArticle.coverImage || `https://picsum.photos/seed/${Date.now()}/800/400`,
       gallery: newArticle.gallery,
       textAlign: newArticle.textAlign,
       externalUrl: newArticle.externalUrl,
       authorUid: auth.currentUser?.uid || "admin",
-      createdAt: new Date().toISOString()
+      updatedAt: new Date().toISOString()
     };
 
     try {
-      await addDoc(collection(db, "articles"), articleData);
+      if (editingId) {
+        await updateDoc(doc(db, "articles", editingId), articleData);
+      } else {
+        await addDoc(collection(db, "articles"), {
+          ...articleData,
+          date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+          createdAt: new Date().toISOString()
+        });
+      }
       setIsAdding(false);
+      setEditingId(null);
       setNewArticle({ 
         title: "", 
         excerpt: "", 
@@ -167,7 +191,7 @@ export default function ArticleManager({
         textAlign: "left"
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, "articles");
+      handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, "articles");
     }
   };
 
@@ -267,10 +291,16 @@ export default function ArticleManager({
                           </span>
                           <span className="text-white/40 text-xs">{article.date}</span>
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 leading-tight group-hover:text-indigo-400 transition-colors">
+                        <h3 
+                          style={{ textAlign: article.textAlign || 'left' }}
+                          className="text-xl font-bold text-white mb-2 line-clamp-2 leading-tight group-hover:text-indigo-400 transition-colors w-full"
+                        >
                           {article.title}
                         </h3>
-                        <p className="text-white/60 text-sm line-clamp-2 leading-relaxed">
+                        <p 
+                          style={{ textAlign: article.textAlign || 'left' }}
+                          className="text-white/60 text-sm line-clamp-2 leading-relaxed w-full"
+                        >
                           {article.excerpt}
                         </p>
                       </div>
@@ -288,7 +318,10 @@ export default function ArticleManager({
                         {!isReadOnly && (
                           <div className="flex gap-2 ml-auto">
                             <button 
-                              onClick={() => setSelectedArticle(article)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditModal(article);
+                              }}
                               className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-white/60 hover:text-white transition-all"
                             >
                               <Edit3 size={18} />
@@ -360,18 +393,16 @@ export default function ArticleManager({
               </div>
               
               <div className="max-w-4xl">
-                <p className={`text-white/90 text-2xl lg:text-3xl leading-snug mb-12 font-bold tracking-tight ${
-                  selectedArticle.textAlign === 'center' ? 'text-center' : 
-                  selectedArticle.textAlign === 'right' ? 'text-right' : 
-                  selectedArticle.textAlign === 'justify' ? 'text-justify' : 'text-left'
-                }`}>
+                <p 
+                  style={{ textAlign: selectedArticle.textAlign }}
+                  className="text-white/90 text-2xl lg:text-3xl leading-snug mb-12 font-bold tracking-tight w-full"
+                >
                   {selectedArticle.excerpt}
                 </p>
-                <div className={`text-white/60 text-lg leading-relaxed whitespace-pre-wrap font-medium markdown-content ${
-                  selectedArticle.textAlign === 'center' ? 'text-center' : 
-                  selectedArticle.textAlign === 'right' ? 'text-right' : 
-                  selectedArticle.textAlign === 'justify' ? 'text-justify' : 'text-left'
-                }`}>
+                <div 
+                  style={{ textAlign: selectedArticle.textAlign }}
+                  className="text-white/60 text-lg leading-relaxed whitespace-pre-wrap font-medium markdown-content w-full"
+                >
                   <ReactMarkdown>{selectedArticle.content}</ReactMarkdown>
                 </div>
               </div>
@@ -439,7 +470,9 @@ export default function ArticleManager({
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-[#1e293b] border border-white/10 w-full max-w-2xl p-8 rounded-[40px] relative z-10 shadow-3xl shadow-black/50 max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
-              <h2 className="text-3xl font-black text-white mb-6">Posting Artikel Baru</h2>
+              <h2 className="text-3xl font-black text-white mb-6">
+                {editingId ? "Edit Artikel" : "Posting Artikel Baru"}
+              </h2>
               <form onSubmit={handleAddArticle} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-6">
@@ -608,7 +641,10 @@ export default function ArticleManager({
                 <div className="flex gap-4 pt-4">
                   <button 
                     type="button"
-                    onClick={() => setIsAdding(false)}
+                    onClick={() => {
+                      setIsAdding(false);
+                      setEditingId(null);
+                    }}
                     className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl transition-all"
                   >
                     Batal
@@ -617,7 +653,7 @@ export default function ArticleManager({
                     type="submit"
                     className="flex-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all"
                   >
-                    Publikasikan
+                    {editingId ? "Simpan Perubahan" : "Publikasikan"}
                   </button>
                 </div>
               </form>

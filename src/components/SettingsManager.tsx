@@ -112,6 +112,7 @@ export default function SettingsManager({
   const [isFilesUploading, setIsFilesUploading] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [newFileName, setNewFileName] = useState("");
+  const [selectedFileForUpload, setSelectedFileForUpload] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Gallery Management States
@@ -158,6 +159,7 @@ export default function SettingsManager({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFileForUpload(file);
       setNewFileName(file.name);
     }
   };
@@ -219,48 +221,64 @@ export default function SettingsManager({
   };
 
   const handleFileUpload = () => {
-    if (!newFileName) return;
+    if (!selectedFileForUpload || !newFileName) return;
     setIsFilesUploading(true);
     setFileUploadProgress(0);
     
-    const interval = setInterval(() => {
-      setFileUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          
-          const finalizeUpload = async () => {
-            const fileExt = newFileName.split('.').pop()?.toUpperCase() || 'ZIP';
-            let iconColor = "text-blue-400";
-            if (fileExt === 'JSON') iconColor = "text-amber-400";
-            if (fileExt === 'ZIP') iconColor = "text-purple-400";
-            if (fileExt === 'PDF') iconColor = "text-rose-400";
+    const reader = new FileReader();
 
-            const newFile = { 
-              name: newFileName.includes('.') ? newFileName : `${newFileName}.zip`, 
-              size: "2.5 MB", 
-              type: fileExt, 
-              date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-              color: iconColor,
-              createdAt: new Date().toISOString()
-            };
+    reader.onprogress = (data) => {
+      if (data.lengthComputable) {
+        setFileUploadProgress(Math.round((data.loaded / data.total) * 100));
+      }
+    };
 
-            try {
-              await addDoc(collection(db, "public_files"), newFile);
-              setIsFilesUploading(false);
-              setIsFileModalOpen(false);
-              setNewFileName("");
-            } catch (error) {
-              console.error("Upload to Firestore error:", error);
-              setIsFilesUploading(false);
-            }
-          };
+    reader.onload = async (e) => {
+      const content = e.target?.result as string;
+      
+      // Firestore document limit check (~1MB)
+      if (content.length > 1048576) {
+        alert("File terlalu besar (maksimal 1MB untuk basis data saat ini).");
+        setIsFilesUploading(false);
+        return;
+      }
 
-          finalizeUpload();
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
+      const fileExt = selectedFileForUpload.name.split('.').pop()?.toUpperCase() || 'FILE';
+      
+      let iconColor = "text-blue-400";
+      if (fileExt === 'JSON') iconColor = "text-amber-400";
+      if (fileExt === 'ZIP') iconColor = "text-purple-400";
+      if (fileExt === 'PDF') iconColor = "text-rose-400";
+
+      const newFile = { 
+        name: newFileName || selectedFileForUpload.name, 
+        size: (selectedFileForUpload.size / (1024 * 1024)).toFixed(2) + " MB", 
+        type: fileExt, 
+        date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        content: content,
+        color: iconColor,
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        await addDoc(collection(db, "public_files"), newFile);
+        setIsFilesUploading(false);
+        setIsFileModalOpen(false);
+        setNewFileName("");
+        setSelectedFileForUpload(null);
+      } catch (error) {
+        console.error("Upload to Firestore error:", error);
+        alert("Gagal mengunggah file ke database.");
+        setIsFilesUploading(false);
+      }
+    };
+
+    reader.onerror = () => {
+      alert("Gagal membaca file.");
+      setIsFilesUploading(false);
+    };
+
+    reader.readAsDataURL(selectedFileForUpload);
   };
 
   const deleteFile = async (id: string) => {

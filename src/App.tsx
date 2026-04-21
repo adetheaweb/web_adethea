@@ -284,8 +284,18 @@ export default function App() {
                               <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest bg-indigo-400/10 px-3 py-1 rounded-full mb-4 inline-block">
                                 {article.category}
                               </span>
-                              <h3 className="text-xl font-bold text-white mb-2 line-clamp-1">{article.title}</h3>
-                              <p className="text-white/60 text-sm line-clamp-2 mb-6">{article.excerpt}</p>
+                              <h3 
+                                style={{ textAlign: article.textAlign || 'left' }}
+                                className="text-xl font-bold text-white mb-2 line-clamp-1 w-full"
+                              >
+                                {article.title}
+                              </h3>
+                              <p 
+                                style={{ textAlign: article.textAlign || 'left' }}
+                                className="text-white/60 text-sm line-clamp-2 mb-6 w-full"
+                              >
+                                {article.excerpt}
+                              </p>
                               <button 
                                 onClick={() => {
                                   setSelectedArticle(article);

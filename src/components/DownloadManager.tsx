@@ -42,33 +42,35 @@ export default function DownloadManager({
   );
 
   const handleDownload = (file: FileItem) => {
-    // Process "download" directly
     try {
       if (file.content && file.content.startsWith('data:')) {
-        // Convert data URL to Blob for better browser compatibility (especially in iframes)
-        const [header, base64Data] = file.content.split(';base64,');
-        const contentType = header.split(':')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: contentType });
-        
-        const url = URL.createObjectURL(blob);
+        // Direct browser download for base64 content
         const link = document.createElement('a');
-        link.href = url;
+        link.href = file.content;
         link.download = file.name;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
         
-        // Cleanup
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        // Safety timeout for cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
       } else if (file.href) {
-        window.open(file.href, '_blank');
+        // If it's a real URL, we try to force download if it's not a cross-origin conflict
+        const link = document.createElement('a');
+        link.href = file.href;
+        link.target = '_blank';
+        link.download = file.name;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+      } else {
+        alert("File ini tidak memiliki konten unduhan yang valid.");
       }
       
       setCompleted(`Berhasil: ${file.name}`);
