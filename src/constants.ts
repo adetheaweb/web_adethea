@@ -17,6 +17,7 @@ export interface SlideItem {
 export const MENU_ITEMS: MenuItem[] = [
   { id: '1', label: 'Beranda', icon: 'Home', href: '#' },
   { id: '2', label: 'Artikel', icon: 'FileText', href: '#' },
+  { id: '7', label: 'Gallery', icon: 'ImageIcon', href: '#' },
   { id: '3', label: 'Unduhan', icon: 'Download', href: '#' },
   { id: '4', label: 'Statistik', icon: 'BarChart2', href: '#' },
   { id: '6', label: 'Quis', icon: 'Compass', href: 'https://smartadethea.pages.dev', isExternal: true },

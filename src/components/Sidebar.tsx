@@ -11,6 +11,7 @@ import {
   ChevronRight,
   FileText,
   Download,
+  Image as ImageIcon,
   LogOut,
   User as UserIcon,
   ShieldCheck
@@ -26,6 +27,7 @@ const iconMap: Record<string, any> = {
   HelpCircle,
   FileText,
   Download,
+  ImageIcon,
   LogOut
 };
 

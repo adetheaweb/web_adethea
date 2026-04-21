@@ -37,3 +37,11 @@ export interface SocialLinks {
   linkedin: string;
   github: string;
 }
+
+export interface GalleryItem {
+  id: string;
+  imageUrl: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+}

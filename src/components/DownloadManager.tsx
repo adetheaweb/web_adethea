@@ -16,7 +16,6 @@ export default function DownloadManager({
   uploadedFiles = [], 
   setUploadedFiles 
 }: DownloadManagerProps) {
-  const [downloading, setDownloading] = useState<string | null>(null);
   const [completed, setCompleted] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -43,48 +42,42 @@ export default function DownloadManager({
   );
 
   const handleDownload = (file: FileItem) => {
-    setDownloading(file.id);
-    
-    // Process "download"
-    setTimeout(() => {
-      try {
-        if (file.content && file.content.startsWith('data:')) {
-          // Convert data URL to Blob for better browser compatibility (especially in iframes)
-          const [header, base64Data] = file.content.split(';base64,');
-          const contentType = header.split(':')[1];
-          const byteCharacters = atob(base64Data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: contentType });
-          
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = file.name;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          // Cleanup
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } else if (file.href) {
-          window.open(file.href, '_blank');
+    // Process "download" directly
+    try {
+      if (file.content && file.content.startsWith('data:')) {
+        // Convert data URL to Blob for better browser compatibility (especially in iframes)
+        const [header, base64Data] = file.content.split(';base64,');
+        const contentType = header.split(':')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
         
-        setCompleted(`Berhasil Mengunduh: ${file.name}`);
-      } catch (error) {
-        console.error("Download failed:", error);
-        setCompleted("Gagal mengunduh file");
-      } finally {
-        setDownloading(null);
-        // Auto hide success message
-        setTimeout(() => setCompleted(null), 3000);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.name;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Cleanup
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else if (file.href) {
+        window.open(file.href, '_blank');
       }
-    }, 1500);
+      
+      setCompleted(`Berhasil: ${file.name}`);
+      setTimeout(() => setCompleted(null), 3000);
+    } catch (error) {
+      console.error("Download failed:", error);
+      setCompleted("Gagal mengunduh file");
+      setTimeout(() => setCompleted(null), 3000);
+    }
   };
 
   const handleFileUpload = () => {
@@ -228,19 +221,10 @@ export default function DownloadManager({
 
                 <button 
                   onClick={() => handleDownload(file)}
-                  disabled={downloading !== null}
-                  className={`flex items-center gap-3 px-6 py-3 rounded-xl font-bold transition-all group/btn min-w-[140px] justify-center ${
-                    downloading === file.id 
-                    ? 'bg-white/5 text-white/40 cursor-wait' 
-                    : 'bg-white/10 hover:bg-white text-white hover:text-indigo-600'
-                  }`}
+                  className="flex items-center gap-3 px-6 py-3 rounded-xl font-bold transition-all group/btn min-w-[140px] justify-center bg-white/10 hover:bg-white text-white hover:text-indigo-600"
                 >
-                  {downloading === file.id ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <Download size={18} className="group-hover/btn:scale-110 transition-transform" />
-                  )}
-                  <span>{downloading === file.id ? 'Proses...' : 'Unduh'}</span>
+                  <Download size={18} className="group-hover/btn:scale-110 transition-transform" />
+                  <span>Unduh</span>
                 </button>
               </motion.div>
             );

@@ -1,8 +1,9 @@
 import Sidebar from "./components/Sidebar";
 import HeaderSlider from "./components/HeaderSlider";
-import ArticleManager from "./components/ArticleManager";
-import SettingsManager from "./components/SettingsManager";
 import DownloadManager from "./components/DownloadManager";
+import ArticleManager from "./components/ArticleManager";
+import GalleryManager from "./components/GalleryManager";
+import SettingsManager from "./components/SettingsManager";
 import StatisticsManager from "./components/StatisticsManager";
 import Login from "./components/Login";
 import { motion, AnimatePresence } from "motion/react";
@@ -20,7 +21,7 @@ import {
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "./firebase";
 import { SLIDE_ITEMS } from "./constants";
-import { Article, SlideItem, FileItem, SocialLinks } from "./types";
+import { Article, SlideItem, FileItem, SocialLinks, GalleryItem } from "./types";
 
 const INITIAL_ARTICLES: Article[] = [];
 
@@ -33,6 +34,7 @@ export default function App() {
   const [articles, setArticles] = useState<Article[]>(INITIAL_ARTICLES);
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [accentColor, setAccentColor] = useState("#6366f1"); // Indigo primary
   const [siteLogo, setSiteLogo] = useState<string | null>(null);
@@ -95,16 +97,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Real-time Data Sync: Files
-  useEffect(() => {
-    const q = query(collection(db, "public_files"), orderBy("date", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FileItem));
-      setUploadedFiles(docs);
-    });
-    return () => unsubscribe();
-  }, []);
-
   // Real-time Data Sync: App Settings
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, "app_settings", "general"), (doc) => {
@@ -118,6 +110,26 @@ export default function App() {
         if (data.whatsappNumber) setWhatsappNumber(data.whatsappNumber);
         if (data.socialLinks) setSocialLinks(data.socialLinks);
       }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Data Sync: Files
+  useEffect(() => {
+    const q = query(collection(db, "public_files"), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FileItem));
+      setUploadedFiles(docs);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Data Sync: Gallery
+  useEffect(() => {
+    const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryItem));
+      setGalleryItems(docs);
     });
     return () => unsubscribe();
   }, []);
@@ -314,20 +326,6 @@ export default function App() {
                   setSelectedArticle={setSelectedArticle}
                 />
               </motion.div>
-            ) : activeTab === "3" ? (
-              <motion.div
-                key="downloads"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <DownloadManager 
-                  isLoggedIn={isLoggedIn} 
-                  uploadedFiles={uploadedFiles} 
-                  setUploadedFiles={setUploadedFiles}
-                />
-              </motion.div>
             ) : activeTab === "4" ? (
               <motion.div
                 key="statistics"
@@ -337,6 +335,26 @@ export default function App() {
                 transition={{ duration: 0.3 }}
               >
                 <StatisticsManager />
+              </motion.div>
+            ) : activeTab === "3" ? (
+              <motion.div
+                key="downloads"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <DownloadManager uploadedFiles={uploadedFiles} />
+              </motion.div>
+            ) : activeTab === "7" ? (
+              <motion.div
+                key="gallery"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <GalleryManager items={galleryItems} />
               </motion.div>
             ) : activeTab === "5" ? (
               <motion.div
@@ -353,6 +371,8 @@ export default function App() {
                   setArticles={setArticles}
                   uploadedFiles={uploadedFiles}
                   setUploadedFiles={setUploadedFiles}
+                  galleryItems={galleryItems}
+                  setGalleryItems={setGalleryItems}
                   accentColor={accentColor} 
                   setAccentColor={setAccentColor} 
                   siteLogo={siteLogo}

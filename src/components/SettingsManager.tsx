@@ -40,8 +40,9 @@ import {
   FileText,
   Loader2,
   MessageCircle,
+  X,
 } from "lucide-react";
-import { SlideItem, FileItem, Article, SocialLinks } from "../types";
+import { SlideItem, FileItem, Article, SocialLinks, GalleryItem } from "../types";
 import ArticleManager from "./ArticleManager";
 
 interface SettingsManagerProps {
@@ -51,6 +52,8 @@ interface SettingsManagerProps {
   setArticles: React.Dispatch<React.SetStateAction<Article[]>>;
   uploadedFiles: FileItem[];
   setUploadedFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
+  galleryItems: GalleryItem[];
+  setGalleryItems: React.Dispatch<React.SetStateAction<GalleryItem[]>>;
   accentColor: string;
   setAccentColor: React.Dispatch<React.SetStateAction<string>>;
   siteLogo: string | null;
@@ -73,8 +76,10 @@ export default function SettingsManager({
   setSlides, 
   articles,
   setArticles,
-  uploadedFiles, 
-  setUploadedFiles, 
+  uploadedFiles,
+  setUploadedFiles,
+  galleryItems,
+  setGalleryItems,
   accentColor, 
   setAccentColor,
   siteLogo,
@@ -102,11 +107,21 @@ export default function SettingsManager({
   const [passFeedback, setPassFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [showPass, setShowPass] = useState(false);
 
+  // Files Management States
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
   const [isFilesUploading, setIsFilesUploading] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [newFileName, setNewFileName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Gallery Management States
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [isGalleryUploading, setIsGalleryUploading] = useState(false);
+  const [galleryUploadProgress, setGalleryUploadProgress] = useState(0);
+  const [newGalleryTitle, setNewGalleryTitle] = useState("");
+  const [newGalleryDesc, setNewGalleryDesc] = useState("");
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
   const photoInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [activeSlideForPhoto, setActiveSlideForPhoto] = useState<string | null>(null);
@@ -158,6 +173,48 @@ export default function SettingsManager({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handlePasswordSave = () => {
+    if (!currentPass || !newPass || !confirmPass) {
+      setPassFeedback({ type: 'error', message: 'Harap isi semua bidang password.' });
+      return;
+    }
+
+    if (newPass !== confirmPass) {
+      setPassFeedback({ type: 'error', message: 'Konfirmasi password baru tidak cocok.' });
+      return;
+    }
+
+    if (currentPass !== adminPassword) {
+      setPassFeedback({ type: 'error', message: 'Password saat ini salah.' });
+      return;
+    }
+
+    setIsSavingPass(true);
+    setPassFeedback(null);
+
+    // Persist to Firestore
+    const updateCredentials = async () => {
+      try {
+        await setDoc(doc(db, "app_settings", "general"), { adminPassword: newPass }, { merge: true });
+        setIsSavingPass(false);
+        setAdminPassword(newPass);
+        setPassFeedback({ type: 'success', message: 'Password admin berhasil diperbarui!' });
+        setCurrentPass("");
+        setNewPass("");
+        setConfirmPass("");
+        
+        // Clear success message after delay
+        setTimeout(() => setPassFeedback(null), 5000);
+      } catch (error) {
+        console.error("Error saving password:", error);
+        setPassFeedback({ type: 'error', message: 'Gagal memperbarui password di database.' });
+        setIsSavingPass(false);
+      }
+    };
+
+    setTimeout(updateCredentials, 2000);
   };
 
   const handleFileUpload = () => {
@@ -213,46 +270,56 @@ export default function SettingsManager({
     }
   };
 
-  const handlePasswordSave = () => {
-    if (!currentPass || !newPass || !confirmPass) {
-      setPassFeedback({ type: 'error', message: 'Harap isi semua bidang password.' });
-      return;
+  const handleGalleryFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && !newGalleryTitle) {
+      setNewGalleryTitle(file.name.split('.')[0]);
     }
+  };
 
-    if (newPass !== confirmPass) {
-      setPassFeedback({ type: 'error', message: 'Konfirmasi password baru tidak cocok.' });
-      return;
-    }
+  const handleGalleryUpload = () => {
+    const file = galleryInputRef.current?.files?.[0];
+    if (!file || !newGalleryTitle) return;
 
-    if (currentPass !== adminPassword) {
-      setPassFeedback({ type: 'error', message: 'Password saat ini salah.' });
-      return;
-    }
+    setIsGalleryUploading(true);
+    setGalleryUploadProgress(0);
 
-    setIsSavingPass(true);
-    setPassFeedback(null);
-
-    // Persist to Firestore
-    const updateCredentials = async () => {
-      try {
-        await setDoc(doc(db, "app_settings", "general"), { adminPassword: newPass }, { merge: true });
-        setIsSavingPass(false);
-        setAdminPassword(newPass);
-        setPassFeedback({ type: 'success', message: 'Password admin berhasil diperbarui!' });
-        setCurrentPass("");
-        setNewPass("");
-        setConfirmPass("");
-        
-        // Clear success message after delay
-        setTimeout(() => setPassFeedback(null), 5000);
-      } catch (error) {
-        console.error("Error saving password:", error);
-        setPassFeedback({ type: 'error', message: 'Gagal memperbarui password di database.' });
-        setIsSavingPass(false);
+    const reader = new FileReader();
+    reader.onprogress = (data) => {
+      if (data.lengthComputable) {
+        setGalleryUploadProgress(Math.round((data.loaded / data.total) * 100));
       }
     };
 
-    setTimeout(updateCredentials, 2000);
+    reader.onload = async (e) => {
+      const imageUrl = e.target?.result as string;
+      const newItem = {
+        title: newGalleryTitle,
+        description: newGalleryDesc,
+        imageUrl,
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        await addDoc(collection(db, "gallery"), newItem);
+        setIsGalleryUploading(false);
+        setIsGalleryModalOpen(false);
+        setNewGalleryTitle("");
+        setNewGalleryDesc("");
+      } catch (error) {
+        console.error("Gallery upload error:", error);
+        setIsGalleryUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const deleteGalleryItem = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "gallery", id));
+    } catch (error) {
+      console.error("Error deleting gallery item:", error);
+    }
   };
 
   const settingsTabs = [
@@ -264,6 +331,7 @@ export default function SettingsManager({
     { id: "password", label: "Ubah Password", icon: ShieldCheck },
     { id: "appearance", label: "Tampilan", icon: Palette },
     { id: "files", label: "Layanan File", icon: Download },
+    { id: "gallery", label: "Manajemen Gallery", icon: ImageIcon },
     { id: "guide", label: "Panduan Admin", icon: HelpCircle },
   ];
 
@@ -1077,7 +1145,140 @@ export default function SettingsManager({
               </div>
             )}
 
-            {activeTab !== "profile" && activeTab !== "slider" && activeTab !== "security" && activeTab !== "appearance" && activeTab !== "social" && activeTab !== "guide" && activeTab !== "files" && activeTab !== "articles" && (
+            {activeTab === "gallery" && (
+              <div className="space-y-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-2xl font-bold text-white">Manajemen Gallery</h3>
+                  <button 
+                    onClick={() => setIsGalleryModalOpen(true)}
+                    className="flex items-center gap-2 bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all shadow-xl"
+                  >
+                    <Plus size={18} />
+                    <span>Tambah Foto</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <AnimatePresence mode="popLayout">
+                    {galleryItems.map((item) => (
+                      <motion.div 
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="group relative aspect-square bg-white/5 rounded-2xl overflow-hidden border border-white/5"
+                      >
+                        <img 
+                          src={item.imageUrl} 
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110" 
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4 text-center">
+                          <p className="text-white text-xs font-bold line-clamp-2">{item.title}</p>
+                          <button 
+                            onClick={() => deleteGalleryItem(item.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all mt-2"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+
+                {/* Gallery Upload Modal */}
+                <AnimatePresence>
+                  {isGalleryModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-8">
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => !isGalleryUploading && setIsGalleryModalOpen(false)}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                      />
+                      
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        className="relative w-full max-w-lg bg-[#1e293b] rounded-[40px] border border-white/10 p-8 lg:p-10 shadow-2xl overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between mb-8">
+                          <h3 className="text-2xl font-bold text-white">Tambah Foto Gallery</h3>
+                          {!isGalleryUploading && (
+                            <button 
+                              onClick={() => setIsGalleryModalOpen(false)}
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 text-white/40 hover:text-white transition-colors"
+                            >
+                              <X size={20} />
+                            </button>
+                          )}
+                        </div>
+
+                        {!isGalleryUploading ? (
+                          <div className="space-y-6">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest pl-1">Judul Foto</label>
+                              <input 
+                                type="text" 
+                                value={newGalleryTitle}
+                                onChange={(e) => setNewGalleryTitle(e.target.value)}
+                                placeholder="Masukkan judul foto..."
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white outline-none focus:bg-white/10 focus:border-white/20 transition-all"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest pl-1">Deskripsi (Opsional)</label>
+                              <textarea 
+                                value={newGalleryDesc}
+                                onChange={(e) => setNewGalleryDesc(e.target.value)}
+                                placeholder="Masukkan deskripsi singkat..."
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white outline-none focus:bg-white/10 focus:border-white/20 transition-all h-24 resize-none"
+                              />
+                            </div>
+
+                            <div 
+                              onClick={() => galleryInputRef.current?.click()}
+                              className="border-2 border-dashed border-white/10 rounded-3xl p-6 text-center bg-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group"
+                            >
+                              <input 
+                                type="file"
+                                ref={galleryInputRef}
+                                onChange={handleGalleryFileChange}
+                                accept="image/*"
+                                className="hidden"
+                              />
+                              <ImageIcon className="mx-auto text-indigo-400 mb-2 group-hover:scale-110 transition-transform" size={24} />
+                              <p className="text-white text-sm font-medium">Klik pilih foto</p>
+                            </div>
+
+                            <button 
+                              onClick={handleGalleryUpload}
+                              disabled={!newGalleryTitle}
+                              className="w-full bg-indigo-500 text-white py-4 rounded-2xl font-bold hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-indigo-500/20"
+                            >
+                              Simpan ke Gallery
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="py-12 flex flex-col items-center">
+                            <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4" />
+                            <h4 className="text-white font-bold text-xl mb-2">Sedang Memproses...</h4>
+                            <p className="text-white/40 text-sm">{galleryUploadProgress}%</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {activeTab !== "profile" && activeTab !== "slider" && activeTab !== "security" && activeTab !== "appearance" && activeTab !== "social" && activeTab !== "guide" && activeTab !== "articles" && activeTab !== "files" && activeTab !== "gallery" && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 text-white/20">
                   <ShieldCheck size={40} />
