@@ -33,6 +33,7 @@ export default function App() {
   const [articles, setArticles] = useState<Article[]>(INITIAL_ARTICLES);
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<FileItem[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [accentColor, setAccentColor] = useState("#6366f1"); // Indigo primary
   const [siteLogo, setSiteLogo] = useState<string | null>(null);
   const [siteName, setSiteName] = useState("Adetheaweb");
@@ -275,7 +276,7 @@ export default function App() {
                               <p className="text-white/60 text-sm line-clamp-2 mb-6">{article.excerpt}</p>
                               <button 
                                 onClick={() => {
-                                  // For now just navigate to article manager
+                                  setSelectedArticle(article);
                                   setActiveTab("2");
                                 }}
                                 className="text-white text-xs font-bold hover:text-indigo-400 transition-colors"
@@ -305,7 +306,13 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                <ArticleManager articles={articles} setArticles={setArticles} isReadOnly={true} />
+                <ArticleManager 
+                  articles={articles} 
+                  setArticles={setArticles} 
+                  isReadOnly={true} 
+                  selectedArticle={selectedArticle}
+                  setSelectedArticle={setSelectedArticle}
+                />
               </motion.div>
             ) : activeTab === "3" ? (
               <motion.div
@@ -359,6 +366,8 @@ export default function App() {
                   setWhatsappNumber={setWhatsappNumber}
                   socialLinks={socialLinks}
                   setSocialLinks={setSocialLinks}
+                  selectedArticle={selectedArticle}
+                  setSelectedArticle={setSelectedArticle}
                 />
               </motion.div>
             ) : (

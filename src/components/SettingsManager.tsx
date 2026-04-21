@@ -64,6 +64,8 @@ interface SettingsManagerProps {
   setWhatsappNumber: React.Dispatch<React.SetStateAction<string>>;
   socialLinks: SocialLinks;
   setSocialLinks: React.Dispatch<React.SetStateAction<SocialLinks>>;
+  selectedArticle: Article | null;
+  setSelectedArticle: (article: Article | null) => void;
 }
 
 export default function SettingsManager({ 
@@ -85,7 +87,9 @@ export default function SettingsManager({
   whatsappNumber,
   setWhatsappNumber,
   socialLinks,
-  setSocialLinks
+  setSocialLinks,
+  selectedArticle,
+  setSelectedArticle
 }: SettingsManagerProps) {
   const [activeTab, setActiveTab] = useState("profile");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -897,7 +901,12 @@ export default function SettingsManager({
             )}
 
             {activeTab === "articles" && (
-              <ArticleManager articles={articles} setArticles={setArticles} />
+              <ArticleManager 
+                articles={articles} 
+                setArticles={setArticles} 
+                selectedArticle={selectedArticle}
+                setSelectedArticle={setSelectedArticle}
+              />
             )}
 
             {activeTab === "files" && (

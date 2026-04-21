@@ -110,7 +110,7 @@ export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout, si
                     </div>
                   </div>
                 )}
-                {MENU_ITEMS.map((item: MenuItem) => {
+                {MENU_ITEMS.filter(item => item.id !== "5").map((item: MenuItem) => {
                   const Icon = iconMap[item.icon];
                   return (
                     <button
@@ -180,7 +180,7 @@ export default function Sidebar({ activeId, onNavigate, isLoggedIn, onLogout, si
             )}
           </div>
         )}
-        {MENU_ITEMS.map((item: MenuItem) => {
+        {MENU_ITEMS.filter(item => item.id !== "5").map((item: MenuItem) => {
           const Icon = iconMap[item.icon];
           const isAdmin = adminTabs.includes(item.id);
           

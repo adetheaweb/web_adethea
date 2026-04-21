@@ -8,6 +8,7 @@ export interface Article {
   coverImage: string;
   externalUrl?: string;
   gallery?: string[];
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
 }
 
 export interface SlideItem {

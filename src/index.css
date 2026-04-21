@@ -15,3 +15,34 @@ body {
   color: #f8fafc;
   min-height: 100vh;
 }
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  margin: 1.5rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.markdown-content a {
+  color: #818cf8;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.markdown-content a:hover {
+  color: #a5b4fc;
+}
+
+.markdown-content p {
+  margin-bottom: 1.5rem;
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5rem;
+}
