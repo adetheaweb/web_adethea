@@ -56,6 +56,19 @@
         "uploadedBy": { "type": "string" }
       },
       "required": ["name", "type"]
+    },
+    "gallery": {
+      "title": "Gallery Items",
+      "description": "Images displayed in the public gallery",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "imageUrl", "createdAt"]
     }
   },
   "firestore": {
@@ -74,6 +87,10 @@
     "public_files": {
       "schema": "files",
       "description": "List of files for the download manager"
+    },
+    "gallery": {
+      "schema": "gallery",
+      "description": "Collection of gallery images"
     }
   }
 }

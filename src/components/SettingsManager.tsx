@@ -120,6 +120,7 @@ export default function SettingsManager({
   const [galleryUploadProgress, setGalleryUploadProgress] = useState(0);
   const [newGalleryTitle, setNewGalleryTitle] = useState("");
   const [newGalleryDesc, setNewGalleryDesc] = useState("");
+  const [selectedGalleryFile, setSelectedGalleryFile] = useState<File | null>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -272,14 +273,19 @@ export default function SettingsManager({
 
   const handleGalleryFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && !newGalleryTitle) {
-      setNewGalleryTitle(file.name.split('.')[0]);
+    if (file) {
+      setSelectedGalleryFile(file);
+      if (!newGalleryTitle) {
+        setNewGalleryTitle(file.name.split('.')[0]);
+      }
     }
   };
 
   const handleGalleryUpload = () => {
-    const file = galleryInputRef.current?.files?.[0];
-    if (!file || !newGalleryTitle) return;
+    if (!selectedGalleryFile || !newGalleryTitle) {
+      alert("Harap pilih foto dan isi judul.");
+      return;
+    }
 
     setIsGalleryUploading(true);
     setGalleryUploadProgress(0);
@@ -293,6 +299,14 @@ export default function SettingsManager({
 
     reader.onload = async (e) => {
       const imageUrl = e.target?.result as string;
+      
+      // Safety check for Firestore document size limit (1MB approx)
+      if (imageUrl.length > 1048576) {
+        alert("Ukuran foto terlalu besar. Harap gunakan foto di bawah 1MB.");
+        setIsGalleryUploading(false);
+        return;
+      }
+
       const newItem = {
         title: newGalleryTitle,
         description: newGalleryDesc,
@@ -306,12 +320,15 @@ export default function SettingsManager({
         setIsGalleryModalOpen(false);
         setNewGalleryTitle("");
         setNewGalleryDesc("");
+        setSelectedGalleryFile(null);
+        if (galleryInputRef.current) galleryInputRef.current.value = "";
       } catch (error) {
         console.error("Gallery upload error:", error);
+        alert("Gagal mengunggah ke database. Periksa koneksi atau ukuran file.");
         setIsGalleryUploading(false);
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(selectedGalleryFile);
   };
 
   const deleteGalleryItem = async (id: string) => {
@@ -1243,7 +1260,9 @@ export default function SettingsManager({
 
                             <div 
                               onClick={() => galleryInputRef.current?.click()}
-                              className="border-2 border-dashed border-white/10 rounded-3xl p-6 text-center bg-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group"
+                              className={`border-2 border-dashed rounded-3xl p-6 text-center transition-all cursor-pointer group ${
+                                selectedGalleryFile ? 'border-indigo-500 bg-indigo-500/5' : 'border-white/10 bg-white/5 hover:border-indigo-500/30'
+                              }`}
                             >
                               <input 
                                 type="file"
@@ -1252,13 +1271,23 @@ export default function SettingsManager({
                                 accept="image/*"
                                 className="hidden"
                               />
-                              <ImageIcon className="mx-auto text-indigo-400 mb-2 group-hover:scale-110 transition-transform" size={24} />
-                              <p className="text-white text-sm font-medium">Klik pilih foto</p>
+                              {selectedGalleryFile ? (
+                                <div className="space-y-1">
+                                  <CheckCircle2 className="mx-auto text-indigo-400" size={24} />
+                                  <p className="text-white text-sm font-bold truncate max-w-[200px] mx-auto">{selectedGalleryFile.name}</p>
+                                  <p className="text-indigo-400 text-[10px] uppercase font-black tracking-widest">Foto Terpilih</p>
+                                </div>
+                              ) : (
+                                <>
+                                  <ImageIcon className="mx-auto text-indigo-400 mb-2 group-hover:scale-110 transition-transform" size={24} />
+                                  <p className="text-white text-sm font-medium">Klik pilih foto</p>
+                                </>
+                              )}
                             </div>
 
                             <button 
                               onClick={handleGalleryUpload}
-                              disabled={!newGalleryTitle}
+                              disabled={!newGalleryTitle || !selectedGalleryFile}
                               className="w-full bg-indigo-500 text-white py-4 rounded-2xl font-bold hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-indigo-500/20"
                             >
                               Simpan ke Gallery
